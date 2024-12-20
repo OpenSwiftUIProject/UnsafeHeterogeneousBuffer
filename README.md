@@ -70,24 +70,67 @@ _ = buffer.append(Double.infinity, vtable: VTable<Double>.self)
 Or you can use `UnsafeHeterogeneousBuffer` internally to implement your own buffer type.
 
 ```swift
-protocol P {
+public protocol P {
     mutating func modify(inputs: inout Int)
 }
 
 extension P {
-    mutating func modify(inputs: inout Int) {}
+    public mutating func modify(inputs: inout Int) {}
+}
+
+public final class A {
+    private var buffer = PBuffer(contents: .init())
+
+    package func append<T>(t: T) where T: P {
+        buffer.append(t)
+    }
+    
+    package subscript<T>(t: T.Type) -> UnsafeMutablePointer<T>? where T: P {
+        buffer[t]
+    }
+
+    deinit {
+        buffer.contents.destroy()
+    }
 }
 
 struct PBuffer {
-    var startIndex: UnsafeHeterogeneousBuffer.Index { contents.startIndex }
-    var endIndex: UnsafeHeterogeneousBuffer.Index { contents.endIndex }
-
     var contents: UnsafeHeterogeneousBuffer
+
+    @discardableResult
+    mutating func append<T>(_ t: T) -> UnsafeHeterogeneousBuffer.Index where T: P {
+        contents.append(t, vtable: _VTable<T>.self)
+    }
+    
+    subscript<T>(_ type: T.Type) -> UnsafeMutablePointer<T>? where T: P {
+        guard !contents.isEmpty else { return nil }
+        for elelement in contents  {
+            guard elelement.hasType(type) else {
+                continue
+            }
+            return elelement.body(as: type)
+        }
+        return nil
+    }
     
     typealias Index = UnsafeHeterogeneousBuffer.Index
     
     struct Element {
         var base: UnsafeHeterogeneousBuffer.Element
+    }
+
+    var startIndex: UnsafeHeterogeneousBuffer.Index { contents.startIndex }
+    
+    var endIndex: UnsafeHeterogeneousBuffer.Index { contents.endIndex }
+    
+    var isEmpty: Bool { contents.isEmpty }
+    
+    subscript(position: UnsafeHeterogeneousBuffer.Index) -> Element {
+        _read { yield Element(base: contents[position]) }
+    }
+    
+    func index(after i: UnsafeHeterogeneousBuffer.Index) -> UnsafeHeterogeneousBuffer.Index {
+        contents.index(after: i)
     }
     
     private class VTable: _UnsafeHeterogeneousBuffer_VTable {
