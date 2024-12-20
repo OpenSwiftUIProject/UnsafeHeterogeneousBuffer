@@ -1,0 +1,54 @@
+name: macOS 
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build XCFramework
+    runs-on: macos-15
+    env:
+      PRODUCT_NAME: UnsafeHeterogeneousBuffer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 16.0
+      - name: Build XCFramework
+        run: ./Scripts/build_xcframework.sh
+  macos_test:
+    name: Execute tests on macOS
+    strategy:
+      matrix:
+        os: [macos-15]
+        xcode-version: [16.0]
+    runs-on: ${{ matrix.os }}
+    env:
+      UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST: 0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ matrix.xcode-version }}
+      - name: Build and run tests in debug mode with coverage
+        run: |
+          swift test \
+            -c debug \
+            --enable-code-coverage \
+            --build-path .build-test-debug
+          xcrun llvm-cov show \
+            -instr-profile=.build-test-debug/debug/codecov/default.profdata \
+            .build-test-debug/debug/UnsafeHeterogeneousBufferPackageTests.xctest/Contents/MacOS/UnsafeHeterogeneousBufferPackageTests \
+            > coverage.txt
+      - uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.txt
+          flags: unittests
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

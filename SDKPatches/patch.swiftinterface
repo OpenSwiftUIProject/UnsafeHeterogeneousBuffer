@@ -1,0 +1,70 @@
+
+/* UNSAFEHETEROGENEOUSBUFFER_PATCH_BEGIN */
+
+@available(iOS 18.0, macOS 15.0, tvOS 18.0, watchOS 11.0, *)
+public struct UnsafeHeterogeneousBuffer : Swift.Collection {
+  public typealias VTable = SwiftUICore._UnsafeHeterogeneousBuffer_VTable
+  public typealias Element = SwiftUICore._UnsafeHeterogeneousBuffer_Element
+  public struct Index : Swift.Equatable, Swift.Comparable {
+    public static func < (lhs: SwiftUICore.UnsafeHeterogeneousBuffer.Index, rhs: SwiftUICore.UnsafeHeterogeneousBuffer.Index) -> Swift.Bool
+    public static func == (a: SwiftUICore.UnsafeHeterogeneousBuffer.Index, b: SwiftUICore.UnsafeHeterogeneousBuffer.Index) -> Swift.Bool
+  }
+  public struct Item {
+  }
+  public var count: Swift.Int {
+    get
+  }
+  public var isEmpty: Swift.Bool {
+    get
+  }
+  public var startIndex: SwiftUICore.UnsafeHeterogeneousBuffer.Index {
+    get
+  }
+  public var endIndex: SwiftUICore.UnsafeHeterogeneousBuffer.Index {
+    get
+  }
+  public init()
+  public func destroy()
+  public func formIndex(after index: inout SwiftUICore.UnsafeHeterogeneousBuffer.Index)
+  public func index(after index: SwiftUICore.UnsafeHeterogeneousBuffer.Index) -> SwiftUICore.UnsafeHeterogeneousBuffer.Index
+  public subscript(index: SwiftUICore.UnsafeHeterogeneousBuffer.Index) -> SwiftUICore.UnsafeHeterogeneousBuffer.Element {
+    get
+  }
+  @discardableResult
+  public mutating func append<T>(_ value: T, vtable: SwiftUICore.UnsafeHeterogeneousBuffer.VTable.Type) -> SwiftUICore.UnsafeHeterogeneousBuffer.Index
+  public typealias Indices = Swift.DefaultIndices<SwiftUICore.UnsafeHeterogeneousBuffer>
+  public typealias Iterator = Swift.IndexingIterator<SwiftUICore.UnsafeHeterogeneousBuffer>
+  public typealias SubSequence = Swift.Slice<SwiftUICore.UnsafeHeterogeneousBuffer>
+}
+@available(iOS 18.0, macOS 15.0, tvOS 18.0, watchOS 11.0, *)
+public struct _UnsafeHeterogeneousBuffer_Element {
+  public func hasType<T>(_ type: T.Type) -> Swift.Bool
+  public func vtable<T>(as type: T.Type) -> T.Type where T : SwiftUICore._UnsafeHeterogeneousBuffer_VTable
+  #if compiler(>=5.3) && $NoncopyableGenerics
+  public func body<T>(as type: T.Type) -> Swift.UnsafeMutablePointer<T>
+  #else
+  public func body<T>(as type: T.Type) -> Swift.UnsafeMutablePointer<T>
+  #endif
+  public var flags: Swift.UInt32 {
+    get
+    nonmutating set
+  }
+  public var address: Swift.UnsafeRawPointer {
+    get
+  }
+}
+@available(*, unavailable)
+extension SwiftUICore._UnsafeHeterogeneousBuffer_Element : Swift.Sendable {
+}
+@_hasMissingDesignatedInitializers @available(iOS 18.0, macOS 15.0, tvOS 18.0, watchOS 11.0, *)
+open class _UnsafeHeterogeneousBuffer_VTable {
+  open class func hasType<T>(_ type: T.Type) -> Swift.Bool
+  open class func moveInitialize(elt: SwiftUICore._UnsafeHeterogeneousBuffer_Element, from: SwiftUICore._UnsafeHeterogeneousBuffer_Element)
+  open class func deinitialize(elt: SwiftUICore._UnsafeHeterogeneousBuffer_Element)
+  @objc deinit
+}
+@available(*, unavailable)
+extension SwiftUICore._UnsafeHeterogeneousBuffer_VTable : Swift.Sendable {
+}
+
+/* UNSAFEHETEROGENEOUSBUFFER_PATCH_END */

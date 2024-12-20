@@ -1,0 +1,237 @@
+From 5153019c635c69fe98b987ca475a870fc46c11d6 Mon Sep 17 00:00:00 2001
+From: Kyle <kyle201817146@gmail.com>
+Date: Fri, 20 Dec 2024 14:14:46 +0800
+Subject: [PATCH] Update permission control for source
+
+---
+ .../UnsafeHeterogeneousBuffer.swift           | 54 ++++++++-----------
+ .../UnsafeHeterogeneousBufferTests.swift      | 21 ++++++--
+ 2 files changed, 41 insertions(+), 34 deletions(-)
+
+diff --git a/Sources/OpenSwiftUICore/Data/DynamicProperty/UnsafeHeterogeneousBuffer.swift b/Sources/OpenSwiftUICore/Data/DynamicProperty/UnsafeHeterogeneousBuffer.swift
+index cc43c6f..af000f1 100644
+--- a/Sources/OpenSwiftUICore/Data/DynamicProperty/UnsafeHeterogeneousBuffer.swift
++++ b/Sources/OpenSwiftUICore/Data/DynamicProperty/UnsafeHeterogeneousBuffer.swift
+@@ -1,49 +1,45 @@
+ //
+ //  UnsafeHeterogeneousBuffer.swift
+-//  OpenSwiftUICore
+-//
+-//  Audited for iOS 18.0
+-//  Status: Complete
+-//  ID: 568350FE259575B5E1AAA52AD722AAAC (SwiftUICore)
++//  UnsafeHeterogeneousBuffer
+ 
+-package struct UnsafeHeterogeneousBuffer: Collection {
++public struct UnsafeHeterogeneousBuffer: Collection {
+     var buf: UnsafeMutableRawPointer!
+     var available: Int32
+     var _count: Int32
+     
+-    package typealias VTable = _UnsafeHeterogeneousBuffer_VTable
+-    package typealias Element = _UnsafeHeterogeneousBuffer_Element
++    public typealias VTable = _UnsafeHeterogeneousBuffer_VTable
++    public typealias Element = _UnsafeHeterogeneousBuffer_Element
+     
+-    package struct Index: Equatable, Comparable {
++    public struct Index: Equatable, Comparable {
+         var index: Int32
+         var offset: Int32
+         
+-        package static func < (lhs: Index, rhs: Index) -> Bool {
++        public static func < (lhs: Index, rhs: Index) -> Bool {
+             lhs.index < rhs.index
+         }
+         
+-        package static func == (a: Index, b: Index) -> Bool {
++        public static func == (a: Index, b: Index) -> Bool {
+             a.index == b.index && a.offset == b.offset
+         }
+     }
+     
+-    package struct Item {
++    public struct Item {
+         let vtable: _UnsafeHeterogeneousBuffer_VTable.Type
+         let size: Int32
+         var flags: UInt32
+     }
+     
+-    package var count: Int { Int(_count) }
+-    package var isEmpty: Bool { _count == 0 }
++    public var count: Int { Int(_count) }
++    public var isEmpty: Bool { _count == 0 }
+     
+-    package var startIndex: Index {
++    public var startIndex: Index {
+         Index(index: 0, offset: 0)
+     }
+-    package var endIndex: Index {
++    public var endIndex: Index {
+         Index(index: _count, offset: 0)
+     }
+     
+-    package init() {
++    public init() {
+         buf = nil
+         available = 0
+         _count = 0
+@@ -116,7 +112,7 @@ package struct UnsafeHeterogeneousBuffer: Collection {
+         available += Int32(allocSize - capacity)
+     }
+     
+-    package func destroy() {
++    public func destroy() {
+         defer { buf?.deallocate() }
+         guard _count != 0 else {
+             return
+@@ -133,11 +129,11 @@ package struct UnsafeHeterogeneousBuffer: Collection {
+         }
+     }
+     
+-    package func formIndex(after index: inout Index) {
++    public func formIndex(after index: inout Index) {
+         index = self.index(after: index)
+     }
+     
+-    package func index(after index: Index) -> Index {
++    public func index(after index: Index) -> Index {
+         let item = self[index].item.pointee
+         let newIndex = index.index &+ 1
+         if newIndex == _count {
+@@ -148,7 +144,7 @@ package struct UnsafeHeterogeneousBuffer: Collection {
+         }
+     }
+     
+-    package subscript(index: Index) -> Element {
++    public subscript(index: Index) -> Element {
+         .init(item: buf
+             .advanced(by: Int(index.offset))
+             .assumingMemoryBound(to: Item.self)
+@@ -156,7 +152,7 @@ package struct UnsafeHeterogeneousBuffer: Collection {
+     }
+     
+     @discardableResult
+-    package mutating func append<T>(_ value: T, vtable: VTable.Type) -> Index {
++    public mutating func append<T>(_ value: T, vtable: VTable.Type) -> Index {
+         let bytes = MemoryLayout<T>.size + MemoryLayout<UnsafeHeterogeneousBuffer.Item>.size
+         let pointer = allocate(bytes)
+         let element = _UnsafeHeterogeneousBuffer_Element(item: pointer.assumingMemoryBound(to: Item.self))
+@@ -168,37 +164,34 @@ package struct UnsafeHeterogeneousBuffer: Collection {
+     }
+ }
+ 
+-@_spi(ForOpenSwiftUIOnly)
+ public struct _UnsafeHeterogeneousBuffer_Element {
+     var item: UnsafeMutablePointer<UnsafeHeterogeneousBuffer.Item>
+     
+-    package func hasType<T>(_ type: T.Type) -> Bool {
++    public func hasType<T>(_ type: T.Type) -> Bool {
+         item.pointee.vtable.hasType(type)
+     }
+     
+-    package func vtable<T>(as type: T.Type) -> T.Type where T: _UnsafeHeterogeneousBuffer_VTable {
++    public func vtable<T>(as type: T.Type) -> T.Type where T: _UnsafeHeterogeneousBuffer_VTable {
+         address.assumingMemoryBound(to: Swift.type(of: type)).pointee
+     }
+     
+-    package func body<T>(as type: T.Type) -> UnsafeMutablePointer<T> {
++    public func body<T>(as type: T.Type) -> UnsafeMutablePointer<T> {
+         UnsafeMutableRawPointer(item.advanced(by: 1)).assumingMemoryBound(to: type)
+     }
+     
+-    package var flags: UInt32 {
++    public var flags: UInt32 {
+         get { item.pointee.flags }
+         nonmutating set { item.pointee.flags = newValue }
+     }
+     
+-    package var address: UnsafeRawPointer {
++    public var address: UnsafeRawPointer {
+         UnsafeRawPointer(item)
+     }
+ }
+ 
+-@_spi(ForOpenSwiftUIOnly)
+ @available(*, unavailable)
+ extension _UnsafeHeterogeneousBuffer_Element: Sendable {}
+ 
+-@_spi(ForOpenSwiftUIOnly)
+ open class _UnsafeHeterogeneousBuffer_VTable {
+     open class func hasType<T>(_ type: T.Type) -> Bool {
+         false
+@@ -213,6 +206,5 @@ open class _UnsafeHeterogeneousBuffer_VTable {
+     }
+ }
+ 
+-@_spi(ForOpenSwiftUIOnly)
+ @available(*, unavailable)
+ extension _UnsafeHeterogeneousBuffer_VTable: Sendable {}
+diff --git a/Tests/OpenSwiftUICoreTests/Data/DynamicProperty/UnsafeHeterogeneousBufferTests.swift b/Tests/OpenSwiftUICoreTests/Data/DynamicProperty/UnsafeHeterogeneousBufferTests.swift
+index 0faea46..d3f2850 100644
+--- a/Tests/OpenSwiftUICoreTests/Data/DynamicProperty/UnsafeHeterogeneousBufferTests.swift
++++ b/Tests/OpenSwiftUICoreTests/Data/DynamicProperty/UnsafeHeterogeneousBufferTests.swift
+@@ -1,9 +1,12 @@
+ //
+ //  UnsafeHeterogeneousBufferTests.swift
+-//  OpenSwiftUICoreTests
++//  UnsafeHeterogeneousBufferTests
+ 
+-@_spi(ForOpenSwiftUIOnly) import OpenSwiftUICore
+-@testable import OpenSwiftUICore
++#if UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
++import SwiftUI
++#else
++@testable import UnsafeHeterogeneousBuffer
++#endif
+ import Testing
+ 
+ struct UnsafeHeterogeneousBufferTests {
+@@ -33,9 +36,11 @@ struct UnsafeHeterogeneousBufferTests {
+             let index = buffer.append(UInt32(1), vtable: VTable<Int32>.self)
+             #expect(buffer.isEmpty == false)
+             #expect(index == buffer.index(atOffset: 0))
++            #if !UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
+             #expect(index.index == 0)
+             #expect(index.offset == 0)
+             #expect(buffer.available == 44)
++            #endif
+             #expect(buffer.count == 1)
+             let element = buffer[index]
+             #expect(element.body(as: UInt32.self).pointee == 1)
+@@ -45,9 +50,11 @@ struct UnsafeHeterogeneousBufferTests {
+             let index = buffer.append(Int(-1), vtable: VTable<Int>.self)
+             #expect(buffer.isEmpty == false)
+             #expect(index == buffer.index(atOffset: 1))
++            #if !UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
+             #expect(index.index == 1)
+             #expect(index.offset == 16 + 4)
+             #expect(buffer.available == 20)
++            #endif
+             #expect(buffer.count == 2)
+             let element = buffer[index]
+             #expect(element.body(as: Int.self).pointee == -1)
+@@ -57,9 +64,11 @@ struct UnsafeHeterogeneousBufferTests {
+             let index = buffer.append(Double.infinity, vtable: VTable<Double>.self)
+             #expect(buffer.isEmpty == false)
+             #expect(index == buffer.index(atOffset: 2))
++            #if !UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
+             #expect(index.index == 2)
+             #expect(index.offset == 16 + 4 + 16 + 8)
+             #expect(buffer.available == 60)
++            #endif
+             #expect(buffer.count == 3)
+             let element = buffer[index]
+             #expect(element.body(as: Double.self).pointee == Double.infinity)
+@@ -92,3 +101,9 @@ struct UnsafeHeterogeneousBufferTests {
+         }
+     }
+ }
++
++extension Collection {
++    package func index(atOffset n: Int) -> Index {
++        index(startIndex, offsetBy: n)
++    }
++}
+-- 
+2.39.5 (Apple Git-154)
+
