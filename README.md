@@ -32,6 +32,79 @@ Then add the dependency to any targets you've declared in your manifest:
 ),
 ```
 
+## Usage
+
+### Plain usage
+
+To make use of `UnsafeHeterogeneousBuffer`, first create your `VTable` implementation and then
+use `append` method to add elements to the buffer.
+
+```swift
+import UnsafeHeterogeneousBuffer
+
+final class VTable<Value>: _UnsafeHeterogeneousBuffer_VTable {
+    override class func hasType<T>(_ type: T.Type) -> Bool {
+        Value.self == T.self
+    }
+    
+    override class func moveInitialize(elt: _UnsafeHeterogeneousBuffer_Element, from: _UnsafeHeterogeneousBuffer_Element) {
+        let dest = elt.body(as: Value.self)
+        let source = from.body(as: Value.self)
+        dest.initialize(to: source.move())
+    }
+    
+    override class func deinitialize(elt: _UnsafeHeterogeneousBuffer_Element) {
+        elt.body(as: Value.self).deinitialize(count: 1)
+    }
+}
+
+var buffer = UnsafeHeterogeneousBuffer()
+defer { buffer.destroy() }      
+_ = buffer.append(UInt32(1), vtable: VTable<Int32>.self)
+_ = buffer.append(Int(-1), vtable: VTable<Int>.self)
+_ = buffer.append(Double.infinity, vtable: VTable<Double>.self)
+```
+
+### Advanced usage
+
+Or you can use `UnsafeHeterogeneousBuffer` internally to implement your own buffer type.
+
+```swift
+protocol P {
+    mutating func modify(inputs: inout Int)
+}
+
+extension P {
+    mutating func modify(inputs: inout Int) {}
+}
+
+struct PBuffer {
+    var startIndex: UnsafeHeterogeneousBuffer.Index { contents.startIndex }
+    var endIndex: UnsafeHeterogeneousBuffer.Index { contents.endIndex }
+
+    var contents: UnsafeHeterogeneousBuffer
+    
+    typealias Index = UnsafeHeterogeneousBuffer.Index
+    
+    struct Element {
+        var base: UnsafeHeterogeneousBuffer.Element
+    }
+    
+    private class VTable: _UnsafeHeterogeneousBuffer_VTable {
+        class func modify(elt: UnsafeHeterogeneousBuffer.Element, inputs: inout Int) {}
+    }
+    
+    private final class _VTable<T>: VTable where T: P{
+        override class func modify(elt: UnsafeHeterogeneousBuffer.Element, inputs: inout Int) {
+            elt.body(as: T.self).pointee.modify(inputs: &inputs)
+        }
+    }
+}
+```
+
+Please see UnsafeHeterogeneousBuffer [documentation site](https://swiftpackageindex.com/OpenSwiftUIProject/UnsafeHeterogeneousBuffer/main/documentation/unsafeheterogeneousbuffer)
+for more detailed information about the library.
+
 ## License
 
 See LICENSE file - MIT
