@@ -39,7 +39,7 @@ struct UnsafeHeterogeneousBufferTests {
             #if !UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
             #expect(index.index == 0)
             #expect(index.offset == 0)
-            #expect(buffer.available == 44)
+            #expect(buffer.available == 32)
             #endif
             #expect(buffer.count == 1)
             let element = buffer[index]
@@ -52,8 +52,8 @@ struct UnsafeHeterogeneousBufferTests {
             #expect(index == buffer.index(atOffset: 1))
             #if !UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
             #expect(index.index == 1)
-            #expect(index.offset == 16 + 4)
-            #expect(buffer.available == 20)
+            #expect(index.offset == 32)
+            #expect(buffer.available == 0)
             #endif
             #expect(buffer.count == 2)
             let element = buffer[index]
@@ -66,8 +66,8 @@ struct UnsafeHeterogeneousBufferTests {
             #expect(index == buffer.index(atOffset: 2))
             #if !UNSAFEHETEROGENEOUSBUFFER_SWIFTUI_COMPATIBILITY_TEST
             #expect(index.index == 2)
-            #expect(index.offset == 16 + 4 + 16 + 8)
-            #expect(buffer.available == 60)
+            #expect(index.offset == 64)
+            #expect(buffer.available == 32)
             #endif
             #expect(buffer.count == 3)
             let element = buffer[index]
@@ -88,7 +88,6 @@ struct UnsafeHeterogeneousBufferTests {
                 deinitBlock()
             }
         }
-        
         
         await confirmation { confirm in
             var buffer = UnsafeHeterogeneousBuffer()

@@ -6,59 +6,49 @@ public struct UnsafeHeterogeneousBuffer: Collection {
     var buf: UnsafeMutableRawPointer!
     var available: Int32
     var _count: Int32
-    
+
     public typealias VTable = _UnsafeHeterogeneousBuffer_VTable
     public typealias Element = _UnsafeHeterogeneousBuffer_Element
-    
+
     public struct Index: Equatable, Comparable {
         var index: Int32
         var offset: Int32
-        
+
         public static func < (lhs: Index, rhs: Index) -> Bool {
             lhs.index < rhs.index
         }
-        
+
         public static func == (a: Index, b: Index) -> Bool {
             a.index == b.index && a.offset == b.offset
         }
     }
-    
+
     public struct Item {
         let vtable: _UnsafeHeterogeneousBuffer_VTable.Type
         let size: Int32
         var flags: UInt32
     }
-    
+
     public var count: Int { Int(_count) }
     public var isEmpty: Bool { _count == 0 }
-    
+
     public var startIndex: Index {
         Index(index: 0, offset: 0)
     }
     public var endIndex: Index {
         Index(index: _count, offset: 0)
     }
-    
+
     public init() {
         buf = nil
         available = 0
         _count = 0
     }
-    
+
     private mutating func allocate(_ bytes: Int) -> UnsafeMutableRawPointer {
-        var count = _count
-        var offset = 0
         var size = 0
-        while count != 0 {
-            let itemSize = buf
-                .advanced(by: offset)
-                .assumingMemoryBound(to: Item.self)
-                .pointee
-                .size
-            offset &+= Int(itemSize)
-            count &-= 1
-            offset = count == 0 ? 0 : offset
-            size &+= Int(itemSize)
+        for element in self {
+            size += Int(element.item.pointee.size)
         }
         // Grow buffer if needed
         if Int(available) < bytes {
@@ -68,7 +58,7 @@ public struct UnsafeHeterogeneousBuffer: Collection {
         available = available - Int32(bytes)
         return ptr
     }
-    
+
     private mutating func growBuffer(by size: Int, capacity: Int) {
         let expectedSize = size + capacity
         var allocSize = Swift.max(capacity &* 2, 64)
@@ -89,13 +79,13 @@ public struct UnsafeHeterogeneousBuffer: Collection {
                     count &-= 1
                     let newItemPointer = newBuffer.assumingMemoryBound(to: Item.self)
                     let oldItemPointer = oldBuffer.assumingMemoryBound(to: Item.self)
-                    
+
                     if count == 0 {
                         itemSize = 0
                     } else {
                         itemSize &+= oldItemPointer.pointee.size
                     }
-                    newItemPointer.initialize(to: oldItemPointer.pointee)                    
+                    newItemPointer.initialize(to: oldItemPointer.pointee)
                     oldItemPointer.pointee.vtable.moveInitialize(
                         elt: .init(item: newItemPointer),
                         from: .init(item: oldItemPointer)
@@ -104,35 +94,24 @@ public struct UnsafeHeterogeneousBuffer: Collection {
                     oldBuffer += size
                     newBuffer += size
                 } while count != 0 || itemSize != 0
-                
             }
             buf.deallocate()
         }
         buf = allocatedBuffer
         available += Int32(allocSize - capacity)
     }
-    
+
     public func destroy() {
         defer { buf?.deallocate() }
-        guard _count != 0 else {
-            return
-        }
-        var count = _count
-        var offset = 0
-        while count != 0 {
-            let itemPointer = buf
-                .advanced(by: offset)
-                .assumingMemoryBound(to: Item.self)
-            itemPointer.pointee.vtable.deinitialize(elt: .init(item: itemPointer))
-            offset &+= Int(itemPointer.pointee.size)
-            count &-= 1
+        for element in self {
+            element.item.pointee.vtable.deinitialize(elt: element)
         }
     }
-    
+
     public func formIndex(after index: inout Index) {
         index = self.index(after: index)
     }
-    
+
     public func index(after index: Index) -> Index {
         let item = self[index].item.pointee
         let newIndex = index.index &+ 1
@@ -143,17 +122,18 @@ public struct UnsafeHeterogeneousBuffer: Collection {
             return Index(index: newIndex, offset: newOffset)
         }
     }
-    
+
     public subscript(index: Index) -> Element {
-        .init(item: buf
-            .advanced(by: Int(index.offset))
-            .assumingMemoryBound(to: Item.self)
+        Element(
+            item: buf
+                .advanced(by: Int(index.offset))
+                .assumingMemoryBound(to: Item.self)
         )
     }
-    
+
     @discardableResult
     public mutating func append<T>(_ value: T, vtable: VTable.Type) -> Index {
-        let bytes = MemoryLayout<T>.size + MemoryLayout<UnsafeHeterogeneousBuffer.Item>.size
+        let bytes = (MemoryLayout<T>.size + MemoryLayout<UnsafeHeterogeneousBuffer.Item>.size + 0xf) & ~0xf
         let pointer = allocate(bytes)
         let element = _UnsafeHeterogeneousBuffer_Element(item: pointer.assumingMemoryBound(to: Item.self))
         element.item.initialize(to: Item(vtable: vtable, size: Int32(bytes), flags: 0))
@@ -166,24 +146,24 @@ public struct UnsafeHeterogeneousBuffer: Collection {
 
 public struct _UnsafeHeterogeneousBuffer_Element {
     var item: UnsafeMutablePointer<UnsafeHeterogeneousBuffer.Item>
-    
+
     public func hasType<T>(_ type: T.Type) -> Bool {
         item.pointee.vtable.hasType(type)
     }
-    
+
     public func vtable<T>(as type: T.Type) -> T.Type where T: _UnsafeHeterogeneousBuffer_VTable {
         address.assumingMemoryBound(to: Swift.type(of: type)).pointee
     }
-    
+
     public func body<T>(as type: T.Type) -> UnsafeMutablePointer<T> {
         UnsafeMutableRawPointer(item.advanced(by: 1)).assumingMemoryBound(to: type)
     }
-    
+
     public var flags: UInt32 {
         get { item.pointee.flags }
         nonmutating set { item.pointee.flags = newValue }
     }
-    
+
     public var address: UnsafeRawPointer {
         UnsafeRawPointer(item)
     }
@@ -196,12 +176,17 @@ open class _UnsafeHeterogeneousBuffer_VTable {
     open class func hasType<T>(_ type: T.Type) -> Bool {
         false
     }
-    
-    open class func moveInitialize(elt: _UnsafeHeterogeneousBuffer_Element, from: _UnsafeHeterogeneousBuffer_Element) {
+
+    open class func moveInitialize(
+        elt: _UnsafeHeterogeneousBuffer_Element,
+        from: _UnsafeHeterogeneousBuffer_Element
+    ) {
         preconditionFailure("")
     }
-    
-    open class func deinitialize(elt: _UnsafeHeterogeneousBuffer_Element) {
+
+    open class func deinitialize(
+        elt: _UnsafeHeterogeneousBuffer_Element
+    ) {
         preconditionFailure("")
     }
 }
