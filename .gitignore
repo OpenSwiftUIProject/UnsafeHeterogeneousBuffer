@@ -1,0 +1,12 @@
+# Swift build artifacts
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+Package.resolved
+
+# Upstream repository clone (temporary)
+.repos/
+
+# macOS
+.DS_Store
