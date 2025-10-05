@@ -67,7 +67,7 @@ git add Sources/UnsafeHeterogeneousBuffer/UnsafeHeterogeneousBuffer.swift \
 git commit -m "$(cat <<EOF
 Update from OpenSwiftUI upstream
 
-Upstream commit: $UPSTREAM_COMMIT_HASH
+Upstream: https://github.com/OpenSwiftUIProject/OpenSwiftUI/blob/$UPSTREAM_COMMIT_HASH/Sources/OpenSwiftUICore/Data/DynamicProperty/UnsafeHeterogeneousBuffer.swift
 
 Transformations applied:
 - Changed package → public access control
@@ -76,7 +76,6 @@ Transformations applied:
 - Added compatibility test conditionals
 - Replaced OpenSwiftUI helpers with standard Swift
 
-OpenSwiftUI: https://github.com/OpenSwiftUIProject/OpenSwiftUI
 EOF
 )"
 
