@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Xcode
-        uses: OpenSwiftUIProject/OpenSwiftUI/.github/actions/setup-xcode@main
+        uses: OpenSwiftUIProject/setup-xcode@v2
         with:
           xcode-version: "16.4"
       - name: Build XCFramework
@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Xcode
-        uses: OpenSwiftUIProject/OpenSwiftUI/.github/actions/setup-xcode@main
+        uses: OpenSwiftUIProject/setup-xcode@v2
         with:
           xcode-version: ${{ matrix.xcode-version }}
       - name: Build and run tests in debug mode with coverage
